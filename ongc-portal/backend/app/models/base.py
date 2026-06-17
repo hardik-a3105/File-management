@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Integer, LargeBinary, func
 from sqlalchemy.orm import relationship, declarative_base
+from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 
@@ -20,6 +21,9 @@ class User(Base):
     name = Column(String(100), nullable=False)
     designation = Column(String(100))
     section = Column(String(50))
+    area = Column(String(50))
+    user_category = Column(String(100))
+    ops_manager_id = Column(Integer, ForeignKey("users.id"))
     level = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     role_id = Column(Integer, ForeignKey("roles.id"))
@@ -28,6 +32,7 @@ class User(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     role = relationship("Role", back_populates="users")
     files = relationship("File", back_populates="uploader")
+    ops_manager = relationship("User", remote_side=[id], foreign_keys=[ops_manager_id])
 
 class File(Base):
     __tablename__ = "files"
@@ -50,6 +55,9 @@ class File(Base):
     file_size = Column(String(20))
     file_path = Column(String(255))
     file_data = Column(LargeBinary)
+    search_text = Column(String, nullable=True)
+    summary = Column(String, nullable=True)
+    embedding = Column(Vector(384), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
@@ -90,6 +98,17 @@ class Report(Base):
     type = Column(String(50))
     data = Column(String)
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SectionConfig(Base):
+    __tablename__ = "section_config"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    section = Column(String(100), nullable=False, unique=True)
+    user_category = Column(String(100))
+    ops_manager_id = Column(Integer, ForeignKey("users.id"))
+    location = Column(String(100))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    ops_manager = relationship("User", foreign_keys=[ops_manager_id])
 
 class Lookup(Base):
     __tablename__ = "lookups"

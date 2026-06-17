@@ -93,6 +93,9 @@ export const api = {
   listUsers: () => request("GET", "/api/users/"),
   createUser: (payload) => request("POST", "/api/users/create", payload),
   updateUserRole: (userId, role_name) => request("PUT", `/api/users/${userId}/role`, { role_name }),
+  updateUserProfile: (userId, payload) => request("PUT", `/api/users/${userId}/profile`, payload),
+  deriveFields: (section, area) => request("GET", `/api/users/derive?section=${encodeURIComponent(section)}&area=${encodeURIComponent(area||"")}`),
+  listSectionConfig: () => request("GET", "/api/users/section-config"),
 
   // NOTIFICATIONS
   listNotifications: () => request("GET", "/api/notifications/"),

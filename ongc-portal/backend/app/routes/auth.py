@@ -41,5 +41,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
             "is_active": user.is_active,
             "role": role_name,
             "role_name": role_name,
+            "area": user.area,
+            "user_category": user.user_category,
+            "ops_manager_id": user.ops_manager_id,
         }
     }

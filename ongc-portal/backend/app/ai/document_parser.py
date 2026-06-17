@@ -1,10 +1,6 @@
 import os
-import PyPDF2
-import docx
-import openpyxl
 import csv
 import io
-from pptx import Presentation
 from typing import List, Tuple
 from app.config import settings
 
@@ -70,6 +66,7 @@ def parse_pdf_ocr(file_path: str) -> Tuple[str, List[dict]]:
     return parse_pdf_pypdf2(file_path)
 
 def parse_pdf_pypdf2(file_path: str, marker_error: str = None) -> Tuple[str, List[dict]]:
+    import PyPDF2
     text = ""
     pages = []
     try:
@@ -88,6 +85,7 @@ def parse_pdf_pypdf2(file_path: str, marker_error: str = None) -> Tuple[str, Lis
     return text, pages
 
 def parse_docx(file_path: str) -> Tuple[str, List[dict]]:
+    import docx
     text = ""
     paragraphs = []
     try:
@@ -101,6 +99,7 @@ def parse_docx(file_path: str) -> Tuple[str, List[dict]]:
     return text, paragraphs
 
 def parse_xlsx(file_path: str) -> Tuple[str, List[dict]]:
+    import openpyxl
     text = ""
     sheets = []
     try:
@@ -135,6 +134,7 @@ def parse_csv(file_path: str) -> Tuple[str, List[dict]]:
     return text, rows_list
 
 def parse_pptx(file_path: str) -> Tuple[str, List[dict]]:
+    from pptx import Presentation
     text = ""
     slides = []
     try:

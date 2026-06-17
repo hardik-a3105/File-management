@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import List
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "ONGC Advance Data Repository"
+    PROJECT_NAME: str = "Data Vision"
     API_V1_STR: str = "/api"
     SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

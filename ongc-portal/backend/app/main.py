@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.routes import auth, users, files, approvals, dashboard, reports, notifications, database, permissions, lookup as lookup_routes, ai as ai_routes, activity
 from app.models.base import Base
 from app.database import engine
 from app.ai.vector_store import vector_store
 
-app = FastAPI(title="ONGC Advance Data Repository API", version="2.0.0")
+app = FastAPI(title="Data Vision API", version="2.0.0")
 
 # CORS
 app.add_middleware(
@@ -17,6 +18,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os, sys
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+else:
+    print(f"[startup] WARNING: static dir not found at {static_dir}", file=sys.stderr)
+
 @app.on_event("startup")
 async def startup():
     try:
@@ -25,11 +33,11 @@ async def startup():
         if settings.PGVECTOR_ENABLED:
             await vector_store.ensure_extension()
     except Exception as e:
-        print(f"[startup] AI tables/pgvector: {e}")
+        print(f"[startup] DB/pgvector: {e}")
 
 @app.get("/")
 def root():
-    return {"msg": "ONGC Advance Data Repository API running."}
+    return {"msg": "Data Vision API running."}
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])

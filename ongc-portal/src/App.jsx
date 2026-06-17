@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { api, setToken } from "./api";
+import { api, setToken, getToken } from "./api";
 import ActivityAnalytics from "./components/ActivityAnalytics";
 
 
 const SECTIONS = ["GP-03","GP-06","GP-15","GP-16","GP-36","GP-61","GP-81","REL","RCC","HSE","Contracts","Operations"];
+const GEO_LOCATIONS = ["Ahmedabad","Ankleshwar","Mehsana","Rajasthan","Delhi","Mumbai","Kolkata"];
 const CATEGORIES = ["General Admin","Accounts","HR(Manpower)","Legal/Arbitration/CourtCase","Contracts CorrespondanceLetter","Contract Execution Chronology","Contractual Bill Summary","Crop Compensation / Farmers","CSR Initiative","Equipment/Electronics","Navigation/Survey Data","Permissions / Statutory Clearances","Requisitions Asset/Basin","Annual Work Porgram (AWP)","Project Report","Operations/Acquisition Report","Observer Report","Processing Report","Survey Geometry/SPS Data","Uphole Reports","Activity Reports","Reconnaissance Survey Report","Atlas / Summary Report","Technical Report/Presentation","SOPs/Workflow/Processing Flow","Field QC Report","Minutes of Meeting/MRM","PPE/Kits & Liveries","Audit ATR/Compliances","VCC Presentation","Legacy Data / Acquisition Chronology","Data Entry Formats","Explosives/PESO","Instrument Calibration / Testing Reports","Daily Progress Report (DPR)","Field Trouble Reports","Crew Deployment / Field Roster","Training / Induction Records","Data Submission Records","Procurement Details","Technology/Innovation","Asset Condemnation","Training Records","Vehicles / Records","Handing/Taking Over","Experimental Plan/Report","Block Wise Coverage","Basin QCG Report and ATR","Important Orders and Circulars","Communication with Contractors","Bank / RCA Account","DISHA Approvals","RTI / Complaint Letters"];
 const SEASONS = ["2025-26","2024-25","2023-24","2022-23","2021-22","2020-21","2019-20","2018-19","2017-18","2016-17","2015-16","2014-15","2013-14","2012-13","2011-12","2010-11","2009-10","2008-09","2007-08","2006-07","2005-06","2004-05","2003-04","2002-03","2001-02","2000-01","1999-00","1998-99","1997-98","1996-97","1995-96","1994-95","1993-94","1992-93","1991-92","1990-91","1989-90","1988-89","1987-88","1986-87","1985-86","1984-85","1983-84","1982-83","1981-82","1980-81","1979-80","1978-79","1977-78","1976-77","1975-76","1974-75","1973-74","1972-73","1971-72","1970-71","1969-70","1968-69","1967-68","1966-67","1965-66","1964-65","1963-64","1962-63","1961-62","1960-61","1959-60","1958-59","1957-58","1956-57"];
 const BLOCKS = ["Ankleshwar","Ahmedabad","Mehsana","Rajasthan","Other"];
@@ -38,6 +39,8 @@ function normalizeFile(f) {
     uploadDate: f.upload_date ? f.upload_date.split("T")[0] : "",
     fileSize: f.file_size || "—",
     filePath: f.file_path || "",
+    snippet: f.snippet,
+    summary: f.summary,
   };
 }
 
@@ -229,7 +232,7 @@ function LoginPage({ onLogin }) {
   return (
     <div style={S.app}>
       <div style={S.header}>
-        <div style={S.headerTitle}>Advance Data Repository by Geophysical Services | Digital Platform for Secure Storage, Data Management and Access!</div>
+        <div style={S.headerTitle}>Data Vision — Geophysical Services | Digital Platform for Secure Storage, Data Management and Access!</div>
       </div>
       <div style={S.sidebar}>
         <a style={S.sideLink(false)} href="#">Geophysical Services</a>
@@ -270,16 +273,78 @@ function LoginPage({ onLogin }) {
           </form>
         </div>
         <div style={{ background:"#fff", borderRadius:8, padding:20, marginBottom:20 }}>
-          <h3 style={{ margin:"0 0 12px 0", color:"#0b3d91", fontSize:15 }}>Default Seed Accounts</h3>
-          <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-            {[["Admin","100001","admin123"],["Ops Manager","100002","ops123"],["Data Creator","100003","user123"],["Viewer","100004","view123"]].map(([role,cpfv,pass])=>(
-              <div key={cpfv} style={{ display:"flex", alignItems:"center", gap:8, background:"#f4f6f9", borderRadius:6, padding:"8px 12px", fontSize:12 }}>
-                <span style={{ fontWeight:700, color:"#0b3d91" }}>{role}:</span>
-                <span style={{ color:"#555" }}>{cpfv} / {pass}</span>
-                <button type="button" style={{ padding:"3px 10px", fontSize:11, background:"#0b3d91", color:"#fff", border:"none", borderRadius:3, cursor:"pointer", fontWeight:600 }} onClick={()=>{setCpf(cpfv);setPwd(pass);}}>Use</button>
-              </div>
-            ))}
-          </div>
+          <h3 style={{ margin:"0 0 12px 0", color:"#0b3d91", fontSize:15 }}>Test Accounts — click any to auto-fill</h3>
+          {[
+            { label:"👑 Admin (no area/category restriction)", color:"#B71C1C", users:[
+              {cpf:"100001",pw:"admin123",name:"Sh. Sandip Kumar Kaur",om:"—"},
+              {cpf:"100005",pw:"Rucha",name:"Rucha",om:"—"},
+            ]},
+            { label:"📋 Ops Managers — see all files in their managed areas", color:"#E65100", users:[
+              {cpf:"100002",pw:"ops123",name:"Rajiv Sharma",area:"Operations",cat:"—",om:"—"},
+              {cpf:"100018",pw:"gpops",name:"Sanjay Gupta",area:"GP-03/06/15/16/36/61/81",cat:"—",om:"—"},
+              {cpf:"100019",pw:"relops",name:"Ravi Agarwal",area:"REL/RCC/HSE/Contracts",cat:"—",om:"—"},
+              {cpf:"100027",pw:"assetops",name:"Vikas Sharma",area:"Ahmedabad/Ankleshwar/Mehsana/Rajasthan",cat:"—",om:"—"},
+            ]},
+            { label:"📤 Data Creators — under Sanjay Gupta (GP Areas)", color:"#1B5E20", users:[
+              {cpf:"100003",pw:"user123",name:"Mahavir Singh",area:"GP-36",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100006",pw:"gp0303",name:"Anil Verma",area:"GP-03",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100007",pw:"gp0606",name:"Vikram Singh",area:"GP-06",cat:"Well Data",om:"Sanjay Gupta"},
+              {cpf:"100008",pw:"gp1515",name:"Rakesh Patel",area:"GP-15",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100009",pw:"gp1616",name:"Suresh Nair",area:"GP-16",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100010",pw:"gp6161",name:"Meena Joshi",area:"GP-61",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100011",pw:"gp8181",name:"Deepak Yadav",area:"GP-81",cat:"Well Data",om:"Sanjay Gupta"},
+            ]},
+            { label:"📤 Data Creators — under Ravi Agarwal (Support)", color:"#1B5E20", users:[
+              {cpf:"100012",pw:"relrel",name:"Pooja Sharma",area:"REL",cat:"Legal",om:"Ravi Agarwal"},
+              {cpf:"100013",pw:"rccrcc",name:"Manoj Tiwari",area:"RCC",cat:"Accounts",om:"Ravi Agarwal"},
+              {cpf:"100014",pw:"hsehse",name:"Sunil Kumar",area:"HSE",cat:"HSE",om:"Ravi Agarwal"},
+              {cpf:"100015",pw:"concon",name:"Arjun Mehta",area:"Contracts",cat:"Contracts",om:"Ravi Agarwal"},
+            ]},
+            { label:"📤 Data Creators — under Vikas Sharma (Asset Areas)", color:"#2E7D32", users:[
+              {cpf:"100023",pw:"ahmedabad",name:"Hemant Desai",area:"Ahmedabad",cat:"Seismic Data",om:"Vikas Sharma"},
+              {cpf:"100024",pw:"ankleshwar",name:"Prakash Nair",area:"Ankleshwar",cat:"Well Data",om:"Vikas Sharma"},
+              {cpf:"100025",pw:"mehsana",name:"Dinesh Patel",area:"Mehsana",cat:"Seismic Data",om:"Vikas Sharma"},
+              {cpf:"100026",pw:"rajasthan",name:"Kamla Devi",area:"Rajasthan",cat:"Seismic Data",om:"Vikas Sharma"},
+            ]},
+            { label:"👁️ Viewers", color:"#1565c0", users:[
+              {cpf:"100004",pw:"view123",name:"Priya Patel",area:"GP-03",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100020",pw:"vie036",name:"Neha Kapoor",area:"GP-36",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100021",pw:"vie003",name:"Rahul Bose",area:"GP-03",cat:"Seismic Data",om:"Sanjay Gupta"},
+              {cpf:"100022",pw:"vieree",name:"Karan Mehta",area:"REL",cat:"Legal",om:"Ravi Agarwal"},
+              {cpf:"100028",pw:"vieahm",name:"Sanjay Mehta",area:"Ahmedabad",cat:"Seismic Data",om:"Vikas Sharma"},
+              {cpf:"100029",pw:"vieank",name:"Rohan Joshi",area:"Ankleshwar",cat:"Well Data",om:"Vikas Sharma"},
+            ]},
+          ].map(group => (
+            <div key={group.label} style={{ marginBottom:12 }}>
+              <div style={{ fontWeight:700, fontSize:13, color:group.color, marginBottom:6 }}>{group.label}</div>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:"#f4f6f9" }}>
+                    <th style={{ textAlign:"left", padding:"4px 8px", fontWeight:600, color:"#555" }}>Name</th>
+                    <th style={{ textAlign:"left", padding:"4px 8px", fontWeight:600, color:"#555" }}>Area</th>
+                    <th style={{ textAlign:"left", padding:"4px 8px", fontWeight:600, color:"#555" }}>Category</th>
+                    <th style={{ textAlign:"left", padding:"4px 8px", fontWeight:600, color:"#555" }}>Ops Manager</th>
+                    <th style={{ textAlign:"left", padding:"4px 8px", fontWeight:600, color:"#555" }}>Credentials</th>
+                    <th style={{ padding:"4px 8px", width:50 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.users.map(u => (
+                    <tr key={u.cpf} style={{ borderTop:"1px solid #eee" }}>
+                      <td style={{ padding:"4px 8px", fontWeight:600, color:"#333" }}>{u.name}</td>
+                      <td style={{ padding:"4px 8px", color:"#666" }}>{u.area || "—"}</td>
+                      <td style={{ padding:"4px 8px", color:"#666" }}>{u.cat || "—"}</td>
+                      <td style={{ padding:"4px 8px", color:"#888", fontSize:11 }}>{u.om || "—"}</td>
+                      <td style={{ padding:"4px 8px", color:"#888", fontFamily:"monospace", fontSize:11 }}>{u.cpf}/{u.pw}</td>
+                      <td style={{ padding:"4px 8px" }}>
+                        <button type="button" style={{ padding:"2px 10px", fontSize:10, background:group.color, color:"#fff", border:"none", borderRadius:3, cursor:"pointer", fontWeight:600 }} onClick={()=>{setCpf(u.cpf);setPwd(u.pw);}}>Use</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
         <div style={{ width:"100%", maxWidth:540, margin:"0 auto" }}>
           <h2 style={{ textAlign:"center", color:"#0b3d91", marginBottom:16, fontSize:18 }}>Office Gallery</h2>
@@ -491,23 +556,26 @@ function DownloadButton({ fileId, fileName }) {
   return <button style={S.btnSm("success")} onClick={handleDownload} disabled={loading}>{loading ? "…" : "⬇ Download"}</button>;
 }
 
-function ActionButtonForFile({ f }) {
+function ActionButtonForFile({ f, searchTerm }) {
   const restricted = ["Confidential", "Highly Confidential / Restricted"].includes(f.classification);
   const isSeed = f.filePath && f.filePath.includes("seed_");
-  const handleView = async () => {
-    try {
-      const res = await api.viewFile(f.id);
-      if (!res.ok) throw new Error("View failed");
-      const blob = await res.blob(); const url = URL.createObjectURL(blob);
-      window.open(url, "_blank"); URL.revokeObjectURL(url);
-    } catch(e) { alert("View failed: "+e.message); }
+  const [showSummary, setShowSummary] = useState(false);
+  const handleView = () => {
+    const token = getToken();
+    const isPdf = f.fileType === "PDF" || (f.fileName || "").toLowerCase().endsWith(".pdf");
+    if (isPdf && searchTerm) {
+      window.open(`/api/files/pdfviewer/${f.id}?token=${token}&search=${encodeURIComponent(searchTerm)}`, "_blank");
+    } else {
+      window.open(`/api/files/view/${f.id}?token=${token}`, "_blank");
+    }
   };
+  const hasSummary = f.summary && f.summary.trim();
   if (isSeed) return <span style={{ fontSize:11, color:"#999", fontStyle:"italic" }}>Mock Data</span>;
-  return restricted ? <button style={S.btnSm("secondary")} onClick={handleView}>👁 View</button> : <DownloadButton fileId={f.id} fileName={f.fileName} />;
+  return <div style={{ display:"flex", gap:4, alignItems:"center" }}>{restricted ? <button style={S.btnSm("secondary")} onClick={handleView}>👁 View</button> : <DownloadButton fileId={f.id} fileName={f.fileName} />}{hasSummary && <button style={S.btnSm("primary")} onClick={e=>{e.stopPropagation();setShowSummary(!showSummary);}}>📄 Summary</button>}{showSummary && <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.4)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e=>{e.stopPropagation();setShowSummary(false);}}><div style={{ background:"#fff", borderRadius:10, padding:24, maxWidth:600, width:"90%", maxHeight:"70vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.3)" }} onClick={e=>e.stopPropagation()}><div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}><span style={{ fontSize:16, fontWeight:700, color:"#0b3d91" }}>📄 Summary — {f.fileName}</span><button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer", color:"#999" }} onClick={()=>setShowSummary(false)}>✕</button></div><div style={{ fontSize:14, lineHeight:1.6, color:"#333" }}>{f.summary}</div></div></div>}</div>;
 }
 
-function UploadFile({ onToast }) {
-  const empty = { fileType:"", projectName:"", sigNumber:"", dataType:"", section:"", category:"", season:"", block:"", mlBlock:"", location:"", classification:"" };
+function UploadFile({ user, onToast }) {
+  const empty = { fileType:"", projectName:"", sigNumber:"", dataType:"", section: user?.area || "", category: user?.user_category || "", season:"", block:"", mlBlock:"", location:"", classification:"" };
   const [form, setForm] = useState(empty); const [fileInput, setFileInput] = useState(null); const [loading, setLoading] = useState(false); const fileRef = useRef(null);
   const [fileTypes, setFileTypes] = useState(FILE_TYPES);
   const [dataTypes, setDataTypes] = useState(DATA_TYPES);
@@ -519,8 +587,22 @@ function UploadFile({ onToast }) {
   useEffect(() => {
     api.getLookups("file_type").then(d => setFileTypes(d.map(x=>x.value))).catch(() => {});
     api.getLookups("data_type").then(d => setDataTypes(d.map(x=>x.value))).catch(() => {});
-    api.getLookups("section").then(d => setSections(d.map(x=>x.value))).catch(() => {});
-    api.getLookups("category").then(d => setCategories(d.map(x=>x.value))).catch(() => {});
+    api.getLookups("section").then(d => {
+      const vals = d.map(x=>x.value);
+      setSections(vals);
+      if (user?.area) {
+        const m = vals.filter(v => v === user.area || v.startsWith(user.area));
+        if (m.length > 0) set("section", m[0]);
+      }
+    }).catch(() => {});
+    api.getLookups("category").then(d => {
+      const vals = d.map(x=>x.value);
+      setCategories(vals);
+      if (user?.user_category) {
+        const m = vals.filter(v => v === user.user_category || v.startsWith(user.user_category));
+        if (m.length > 0) set("category", m[0]);
+      }
+    }).catch(() => {});
     api.getLookups("season").then(d => setSeasons(d.map(x=>x.value))).catch(() => {});
     api.getLookups("block").then(d => setBlocks(d.map(x=>x.value))).catch(() => {});
   }, []);
@@ -610,6 +692,21 @@ function FileRecords({ user, statusFilter, onToast, onRefresh }) {
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const openPdf = (f, e) => {
+    if (e) e.stopPropagation();
+    const token = getToken();
+    const isPdf = f.fileType === "PDF" || (f.fileName || "").toLowerCase().endsWith(".pdf");
+    const canDownload = f.status === "Approved" && !["Confidential","Highly Confidential / Restricted"].includes(f.classification);
+    if (isPdf && search) {
+      window.open(`/api/files/pdfviewer/${f.id}?token=${token}&search=${encodeURIComponent(search)}`, "_blank");
+    } else if (isPdf) {
+      window.open(`/api/files/view/${f.id}?token=${token}`, "_blank");
+    } else if (canDownload) {
+      window.open(`/api/files/download/${f.id}?token=${token}`, "_blank");
+    } else {
+      window.open(`/api/files/view/${f.id}?token=${token}`, "_blank");
+    }
+  };
   const handleApprove = async (f) => {
     const cls = approveClass[f.id];
     try { await api.approveFile(f.id, cls); onToast(`File "${f.fileName}" approved${cls ? " as "+cls : ""}.`, "success"); fetchFiles(); onRefresh(); }
@@ -627,11 +724,11 @@ function FileRecords({ user, statusFilter, onToast, onRefresh }) {
       <div style={S.sectionTitle}>📂 {statusFilter ? statusFilter+" Files" : "File Records"}<span style={{ fontSize:14, background:"#0b3d91", color:"#fff", borderRadius:12, padding:"2px 10px" }}>{files.length}</span></div>
       <div style={S.card}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1fr", gap:12, alignItems:"end" }}>
-          <div><label style={S.label}>🔍 Search</label><input style={S.input} placeholder="File name, project, SIG, category, location…" value={search} onChange={e=>setSearch(e.target.value)} /></div>
+          <div><label style={S.label}>🔍 Search</label><input style={S.input} placeholder="File name, project, SIG, category, location, PDF content…" value={search} onChange={e=>setSearch(e.target.value)} /></div>
+          <div><label style={S.label}>Season</label><select style={S.select} onChange={e=>setF("season",e.target.value)}><option value="">All</option>{seasons.slice(0,10).map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={S.label}>Section</label><select style={S.select} onChange={e=>setF("section",e.target.value)}><option value="">All</option>{sections.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={S.label}>File Type</label><select style={S.select} onChange={e=>setF("file_type",e.target.value)}><option value="">All</option>{fileTypes.map(t=><option key={t}>{t}</option>)}</select></div>
           <div><label style={S.label}>Data Type</label><select style={S.select} onChange={e=>setF("data_type",e.target.value)}><option value="">All</option>{dataTypes.map(t=><option key={t}>{t}</option>)}</select></div>
-          <div><label style={S.label}>Season</label><select style={S.select} onChange={e=>setF("season",e.target.value)}><option value="">All</option>{seasons.slice(0,10).map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={S.label}>Block</label><select style={S.select} onChange={e=>setF("block",e.target.value)}><option value="">All</option>{blocks.map(b=><option key={b}>{b}</option>)}</select></div>
         </div>
       </div>
@@ -652,7 +749,7 @@ function FileRecords({ user, statusFilter, onToast, onRefresh }) {
               <thead><tr>{["File Name","Type","Upload Date","Project","SIG No.","Data Type","Section","Category","Season","Block","Location","Classification","Status",canApprove?"Actions":"Download"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
               <tbody>{files.map(f=>(
                 <tr key={f.id} style={{ cursor:"pointer" }} onClick={()=>setSelected(f===selected?null:f)}>
-                  <td style={S.td}><span style={{ color:"#0b3d91", fontWeight:600 }}>{f.fileName}</span><br/><span style={{ fontSize:12, color:"#999" }}>{f.fileSize}</span></td>
+                  <td style={S.td}><span style={{ color:"#0b3d91", fontWeight:600, cursor:"pointer", textDecoration:"underline", textDecorationColor:"#90caf9" }} onClick={e=>openPdf(f,e)}>{f.fileName}</span><br/><span style={{ fontSize:12, color:"#999" }}>{f.fileSize}</span>{f.snippet && (() => { const isExact = !f.snippet.startsWith("["); const text = f.snippet.replace(/^\[(semantic|vector)\]\s*/,""); return <div style={{ fontSize:11, color:"#333", marginTop:4, padding:"4px 6px", background:"#fafafa", borderRadius:4, borderLeft:"3px solid #ccc", lineHeight:1.4 }}><span style={{ fontSize:10, fontWeight:700, padding:"1px 5px", borderRadius:3, marginRight:6, background:isExact?"#e3f2fd":"#e8f5e9", color:isExact?"#1565c0":"#2e7d32" }}>{isExact?"Exact":"Related"}</span>{text}</div>; })()}</td>
                   <td style={S.td}><span style={{ background:"#E3F2FD", color:"#1565c0", padding:"2px 8px", borderRadius:4, fontSize:13, fontWeight:700 }}>{f.fileType}</span></td>
                   <td style={S.td}>{f.uploadDate}</td><td style={S.td}>{f.projectName}</td><td style={S.td}>{f.sigNumber||"N/A"}</td>
                   <td style={S.td}>{f.dataType}</td><td style={S.td}>{f.section}</td><td style={S.td}>{f.category}</td>
@@ -672,7 +769,7 @@ function FileRecords({ user, statusFilter, onToast, onRefresh }) {
                       <button style={S.btnSm("success")} onClick={()=>handleApprove(f)}>✓ Approve</button>
                       <button style={S.btnSm("danger")} onClick={()=>{setRejectModal(f); setRejectReason("");}}>✗ Reject</button>
                     </div>
-                  ) : <ActionButtonForFile f={f} />}</td>
+                  ) : <ActionButtonForFile f={f} searchTerm={search} />}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -893,22 +990,61 @@ function AccessPermissions({ onToast }) {
 function UserManagement({ onToast }) {
   const [users, setUsers] = useState([]); const [loading, setLoading] = useState(true);
   const [editingRole, setEditingRole] = useState(null);
-  const [createForm, setCreateForm] = useState({ cpf:"", name:"", password:"", designation:"", section:"", role_name:"viewer" });
+  const [editingProfile, setEditingProfile] = useState(null);
+  const [profileForm, setProfileForm] = useState({});
+  const [areas, setAreas] = useState(GEO_LOCATIONS);
+  const [categories, setCategories] = useState([]);
+  const [opsManagers, setOpsManagers] = useState([]);
+  const [sections, setSections] = useState(SECTIONS);
+  const [createForm, setCreateForm] = useState({ cpf:"", password:"", section:"", area:"", role_name:"viewer" });
+  const [derivedInfo, setDerivedInfo] = useState(null);
   const setCF = (k,v) => setCreateForm(f=>({...f,[k]:v}));
+
+  useEffect(() => {
+    api.getLookups("user_category").then(d => setCategories(d.map(x=>x.value))).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (createForm.section) {
+      api.deriveFields(createForm.section).then(d => {
+        setDerivedInfo(d);
+        if (d.location && !createForm.area) {
+          setCF("area", d.location);
+        }
+      }).catch(() => setDerivedInfo(null));
+    } else {
+      setDerivedInfo(null);
+    }
+  }, [createForm.section]);
+
+  const loadUsers = () => {
+    setLoading(true);
+    api.listUsers().then(data => {
+      const mapped = (data||[]).map(u => ({ ...u, role: u.role?.name || u.role_name || "viewer" }));
+      setUsers(mapped);
+      setOpsManagers(mapped.filter(u => u.role === "ops_manager" || u.role === "admin"));
+    }).catch(()=>setUsers([])).finally(()=>setLoading(false));
+  };
+  useEffect(() => { loadUsers(); }, []);
+
   const handleCreate = async () => {
     try {
       if (!createForm.cpf || !createForm.password) { onToast("CPF and password required","error"); return; }
-      await api.createUser(createForm);
+      const payload = {
+        cpf: createForm.cpf,
+        password: createForm.password,
+        section: createForm.section,
+        area: createForm.area,
+        role_name: createForm.role_name,
+      };
+      await api.createUser(payload);
       onToast("User created successfully","success");
-      setCreateForm({ cpf:"", name:"", password:"", designation:"", section:"", role_name:"viewer" });
+      setCreateForm({ cpf:"", password:"", section:"", area:"", role_name:"viewer" });
+      setDerivedInfo(null);
       loadUsers();
     } catch(e) { onToast(e.message || "Create failed","error"); }
   };
-  const loadUsers = () => {
-    setLoading(true);
-    api.listUsers().then(data => setUsers((data||[]).map(u => ({ ...u, role: u.role?.name || u.role_name || "viewer" })))).catch(()=>setUsers([])).finally(()=>setLoading(false));
-  };
-  useEffect(() => { loadUsers(); }, []);
+
   const handleRoleChange = async (userId, newRole) => {
     try {
       await api.updateUserRole(userId, newRole);
@@ -917,36 +1053,93 @@ function UserManagement({ onToast }) {
       loadUsers();
     } catch(e) { onToast(e.message || "Role update failed","error"); }
   };
+
+  const startEditProfile = (u) => {
+    setEditingProfile(u.id);
+    setProfileForm({ section: u.section||"", area: u.area||"", user_category: u.user_category||"", designation: u.designation||"", ops_manager_id: u.ops_manager_id||"" });
+  };
+
+  useEffect(() => {
+    if (editingProfile && profileForm.section) {
+      api.deriveFields(profileForm.section).then(d => {
+        setProfileForm(p => ({
+          ...p,
+          user_category: d.user_category || p.user_category,
+          ops_manager_id: d.ops_manager_id || p.ops_manager_id,
+        }));
+      }).catch(() => {});
+    }
+  }, [profileForm.section]);
+
+  const handleProfileSave = async (userId) => {
+    try {
+      const payload = {};
+      for (const k of ["section","area","user_category","designation","ops_manager_id"]) {
+        if (profileForm[k] !== "") payload[k] = profileForm[k];
+      }
+      await api.updateUserProfile(userId, payload);
+      onToast("Profile updated successfully","success");
+      setEditingProfile(null);
+      loadUsers();
+    } catch(e) { onToast(e.message || "Update failed","error"); }
+  };
+
   return (
     <div>
       <div style={S.sectionTitle}>👥 User Management</div>
       <div style={S.card}>
-        {loading ? <Spinner /> : users.length === 0 ? <div style={{ color:"#aaa", textAlign:"center", padding:24 }}>No users found. Run the seed script to populate initial data.</div> : (
+        {loading ? <Spinner /> : users.length === 0 ? <div style={{ color:"#aaa", textAlign:"center", padding:24 }}>No users found.</div> : (
           <table style={S.table}>
-            <thead><tr>{["CPF","Name","Designation","Section","Level","Role","Actions"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["CPF","Name","Designation","Section","Area","Category","Ops Manager","Level","Role","Actions"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>{users.map(u=>(
               <tr key={u.id}>
                 <td style={S.td}>{u.cpf}</td>
                 <td style={S.td}><strong>{u.name}</strong></td>
-                <td style={S.td}>{u.designation}</td>
-                <td style={S.td}>{u.section}</td>
+                <td style={S.td}>{editingProfile === u.id ? <input style={{ ...S.input, margin:0, width:100, fontSize:11 }} value={profileForm.designation} onChange={e=>setProfileForm(p=>({...p,designation:e.target.value}))} /> : u.designation}</td>
+                <td style={S.td}>{editingProfile === u.id ? (
+                  <select style={{ ...S.select, margin:0, width:90, fontSize:11 }} value={profileForm.section} onChange={e=>{
+                    setProfileForm(p=>({...p,section:e.target.value}));
+                    api.deriveFields(e.target.value).then(d => setProfileForm(p=>({...p,user_category: d.user_category||p.user_category, ops_manager_id: d.ops_manager_id||p.ops_manager_id}))).catch(()=>{});
+                  }}>
+                    <option value="">None</option>{sections.map(s=><option key={s}>{s}</option>)}
+                  </select>
+                ) : u.section}</td>
+                <td style={S.td}>{editingProfile === u.id ? (
+                  <select style={{ ...S.select, margin:0, width:100, fontSize:11 }} value={profileForm.area} onChange={e=>setProfileForm(p=>({...p,area:e.target.value}))}>
+                    <option value="">None</option>{GEO_LOCATIONS.map(a=><option key={a}>{a}</option>)}
+                  </select>
+                ) : u.area}</td>
+                <td style={S.td}>{editingProfile === u.id ? (
+                  <span style={{ fontSize:11, color:"#555" }}>{profileForm.user_category || "— (auto)"}</span>
+                ) : u.user_category}</td>
+                <td style={S.td}>{editingProfile === u.id ? (
+                  <span style={{ fontSize:11, color:"#555" }}>{opsManagers.find(o=>o.id===profileForm.ops_manager_id)?.name || "— (auto)"}</span>
+                ) : (u.ops_manager_name || "—")}</td>
                 <td style={S.td}>Level-{u.level}</td>
                 <td style={S.td}>
                   {editingRole === u.id ? (
-                    <select style={{ ...S.select, width:140, fontSize:11 }} value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)}>
+                    <select style={{ ...S.select, width:120, fontSize:11, margin:0 }} value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)}>
                       <option value="admin">admin</option><option value="ops_manager">ops_manager</option><option value="data_creator">data_creator</option><option value="viewer">viewer</option>
                     </select>
                   ) : (
-                    <span style={{ ...S.badge(u.role === "admin" ? "#B71C1C" : "#0b3d91", "#E3F2FD") }}>{ROLE_LABELS[u.role] || u.role}</span>
+                    <span style={{ ...S.badge(u.role === "admin" ? "#B71C1C" : "#0b3d91", "#E3F2FD"), fontSize:12 }}>{ROLE_LABELS[u.role] || u.role}</span>
                   )}
                 </td>
                 <td style={S.td}>
-                  {u.role === "admin" ? (
-                    <span style={{ fontSize:11, color:"#999" }}>Protected</span>
+                  {editingProfile === u.id ? (
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button style={S.btnSm("success")} onClick={() => handleProfileSave(u.id)}>Save</button>
+                      <button style={S.btnSm("secondary")} onClick={() => setEditingProfile(null)}>Cancel</button>
+                    </div>
                   ) : editingRole === u.id ? (
                     <button style={S.btnSm("secondary")} onClick={() => setEditingRole(null)}>Cancel</button>
+                  ) : u.role === "admin" ? (
+                    <span style={{ fontSize:11, color:"#999" }}>Protected</span>
                   ) : (
-                    <button style={S.btnSm("primary")} onClick={() => setEditingRole(u.id)}>Change Role</button>
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button style={S.btnSm("primary")} onClick={() => startEditProfile(u)}>Edit Details</button>
+                      <button style={S.btnSm("secondary")} onClick={() => setEditingRole(u.id)}>Change Role</button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -955,28 +1148,26 @@ function UserManagement({ onToast }) {
         )}
       </div>
       <div style={{ ...S.card, marginTop:4 }}>
-        <div style={{ fontSize:14, fontWeight:700, color:"#0b3d91", marginBottom:4 }}>Access Hierarchy Diagram</div>
-        <div style={{ display:"flex", alignItems:"center", gap:0, flexWrap:"wrap" }}>
-          {[["Level-II","Head GS (Admin)","#B71C1C"],["→","","transparent"],["Level-III","Ops Manager","#E65100"],["→","","transparent"],["Level-IV","Data Creator","#1B5E20"],["→","","transparent"],["Level-0","All ONGC","#1565c0"]].map(([l,d,c],i)=>(
-            l==="→" ? <div key={i} style={{ fontSize:24, color:"#aaa", margin:"0 4px" }}>→</div> :
-            <div key={i} style={{ background:c+"15", border:`1px solid ${c}`, borderRadius:8, padding:"8px 16px", textAlign:"center" }}>
-              <div style={{ fontSize:11, fontWeight:800, color:c }}>{l}</div>
-              <div style={{ fontSize:12, color:"#1a1a2e", fontWeight:600 }}>{d}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ ...S.card, marginTop:4 }}>
         <div style={{ fontSize:14, fontWeight:700, color:"#0b3d91", marginBottom:4 }}>Create New User (Admin only)</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
             <input style={S.input} placeholder="CPF" value={createForm.cpf} onChange={e=>setCF('cpf', e.target.value)} />
-            <input style={S.input} placeholder="Name" value={createForm.name} onChange={e=>setCF('name', e.target.value)} />
-            <input style={S.input} placeholder="Password" value={createForm.password} onChange={e=>setCF('password', e.target.value)} />
-            <input style={S.input} placeholder="Designation" value={createForm.designation} onChange={e=>setCF('designation', e.target.value)} />
-            <input style={S.input} placeholder="Section" value={createForm.section} onChange={e=>setCF('section', e.target.value)} />
+            <input style={S.input} type="password" placeholder="Password" value={createForm.password} onChange={e=>setCF('password', e.target.value)} />
+            <select style={S.select} value={createForm.section} onChange={e=>setCF('section', e.target.value)}>
+              <option value="">— Section (Dept) —</option>{sections.map(s=><option key={s}>{s}</option>)}
+            </select>
+            <select style={S.select} value={createForm.area} onChange={e=>setCF('area', e.target.value)}>
+              <option value="">— Location (Area) —</option>{areas.map(a=><option key={a}>{a}</option>)}
+            </select>
             <select style={S.select} value={createForm.role_name} onChange={e=>setCF('role_name', e.target.value)}>
               <option value="viewer">viewer</option><option value="data_creator">data_creator</option><option value="ops_manager">ops_manager</option><option value="admin">admin</option>
             </select>
+            <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:"#555", padding:"6px 0" }}>
+              {derivedInfo ? (
+                <>Category: <strong>{derivedInfo.user_category || "—"}</strong> &nbsp;|&nbsp; Ops Mgr: <strong>{opsManagers.find(o=>o.id===derivedInfo.ops_manager_id)?.name || "—"}</strong></>
+              ) : (
+                <span style={{ color:"#aaa" }}>Select section to auto-fill details</span>
+              )}
+            </div>
           </div>
           <div style={{ marginTop:12 }}><button style={S.btn()} onClick={handleCreate}>Create User</button></div>
       </div>
@@ -1023,7 +1214,7 @@ function Settings({ user }) {
       <div style={S.card}>
         <div style={{ fontSize:14, fontWeight:700, color:"#0b3d91", marginBottom:4 }}>System Configuration</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-          {[["Portal Name","Advance Data Repository (ADR)"],["Organization","ONGC — Geophysical Services, WON Basin"],["Location","Vadodara, Gujarat"],["Max File Size","1 GB"],["Backup Frequency","Weekly (Auto)"],["Authentication","Domain CPF Login"],["Version","1.0.0"],["Backend","FastAPI + PostgreSQL"],["API Base","http://localhost:8000"]].map(([k,v])=>(
+          {[["Portal Name","Data Vision"],["Organization","ONGC — Geophysical Services, WON Basin"],["Location","Vadodara, Gujarat"],["Max File Size","1 GB"],["Backup Frequency","Weekly (Auto)"],["Authentication","Domain CPF Login"],["Version","1.0.0"],["Backend","FastAPI + PostgreSQL"],["API Base","http://localhost:8000"]].map(([k,v])=>(
             <div key={k} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:"1px solid #f0f4f8" }}>
               <span style={{ fontSize:13, color:"#5a6a7a", fontWeight:600 }}>{k}</span>
               <span style={{ fontSize:13, color:"#1a1a2e" }}>{v}</span>
@@ -1129,7 +1320,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <div style={{...S.header, justifyContent:"flex-start", gap:16}}>
-        <div style={S.headerTitle}>Advance Data Repository by Geophysical Services | Digital Platform for Secure Storage, Data Management and Access!</div>
+        <div style={S.headerTitle}>Data Vision — Geophysical Services | Digital Platform for Secure Storage, Data Management and Access!</div>
         <div style={S.headerRight}>
           <span style={{ fontWeight:700, fontSize:14 }}>{user.name}</span>
           <span style={{ fontSize:12, opacity:0.8 }}>({ROLE_LABELS[user.role]})</span>

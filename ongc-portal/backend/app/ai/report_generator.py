@@ -65,7 +65,7 @@ Format the report with clear sections and professional language."""
         )
 
         story = []
-        story.append(Paragraph(f"ONGC Advance Data Repository", styles['Normal']))
+        story.append(Paragraph(f"Data Vision", styles['Normal']))
         story.append(Spacer(1, 6))
         story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y')}", styles['Normal']))
         story.append(Spacer(1, 6))
@@ -101,7 +101,7 @@ Format the report with clear sections and professional language."""
 
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run("ONGC Advance Data Repository")
+        run = p.add_run("Data Vision")
         run.bold = True
         run.font.size = Pt(20)
         run.font.color.rgb = RGBColor(11, 61, 145)
